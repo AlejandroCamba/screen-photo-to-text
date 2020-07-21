@@ -30,6 +30,18 @@
 *.exe
 *.out
 *.app
+*.cmake
 
 #others
 screen-photo-to-text
+startProject
+/CMakeFiles
+Makefile
+CMakeCache.txt
+/vcpkg
+
+#photos
+*.png
+*.jpg
+*.HEIC
+*.JPEG
