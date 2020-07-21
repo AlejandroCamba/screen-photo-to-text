@@ -3,6 +3,16 @@
     "vector": "cpp",
     "iostream": "cpp",
     "__locale": "cpp",
-    "ios": "cpp"
+    "ios": "cpp",
+    "ostream": "cpp",
+    "iosfwd": "cpp",
+    "*.tcc": "cpp",
+    "*.ipp": "cpp",
+    "typeindex": "cpp",
+    "typeinfo": "cpp"
+  },
+  "cmake.configureSettings": {
+    "CMAKE_TOOLCHAIN_FILE": "${vcpkgRoot}/scripts/buildsystems/vcpkg.cmake",
+    "CMAKE_PREFIX_PATH": "/usr/local/Cellar/libzip/1.7.3:/usr/local/Cellar/zlib/1.2.11"
   }
 }

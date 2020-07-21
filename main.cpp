@@ -14,12 +14,15 @@
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
 #include <tesseract/baseapi.h>
-
+#include <libzippp/libzippp.h>
 #include <iostream>
+#include <fstream>
+#include <regex>
 
 using namespace std;
 using namespace cv;
 using namespace cv::text;
+using namespace libzippp;
 
 //Calculate edit distance between two words
 size_t edit_distance(const string& A, const string& B);
@@ -37,61 +40,89 @@ char* read_text(Mat input_image)
     text_recognizer.Recognize(0);
     return text_recognizer.GetUTF8Text();
 }
+
 //Perform text detection and recognition and evaluate results using edit distance
 int main(int argc, char* argv[])
 {
-    cout << endl << argv[0] << endl << endl;
-    cout << "A demo program of End-to-end Scene Text Detection and Recognition: " << endl;
-    cout << "Shows the use of the Tesseract OCR API with the Extremal Region Filter algorithm described in:" << endl;
-    cout << "Neumann L., Matas J.: Real-Time Scene Text Localization and Recognition, CVPR 2012" << endl << endl;
+    string text = "";
 
-    Mat image;
-    
+    char* zipfile;
+
     if(argc>1)
-        image  = imread(argv[1]);
-    else
-    {
-        cout << "    Usage: " << argv[0] << " <input_image> [<gt_word1> ... <gt_wordN>]" << endl;
-        return(0);
+        zipfile  = argv[1];
+    else {
+        return 0;
     }
 
-    cout << "IMG_W=" << image.cols << endl;
-    cout << "IMG_H=" << image.rows << endl;
 
-    /*Text Detection*/
+ZipArchive zf(zipfile);
+zf.open(ZipArchive::READ_ONLY);
 
-    // Extract channels to be processed individually
-    vector<Mat> channels;
+vector<ZipEntry> entries = zf.getEntries();
+int entriesCount = zf.getEntriesCount();
+vector<ZipEntry>::iterator it;
 
-    Mat cropedImage = image(Rect(670, 220, 600, 630));
+int size;
 
-    Mat grey;
-    cvtColor(cropedImage, grey, cv::COLOR_BGR2GRAY);
+for(it = entries.begin(); it < entries.end(); ++it) {
+    ZipEntry entry = *it;
 
-    // Notice here we are only using grey channel, see textdetection.cpp for example with more channels
+    if (regex_match(entry.getName(), regex("([A-z])\\w+.JPEG"))) {
+        string name = entry.getName();
+        size = entry.getSize();
+        void* binaryData = entry.readAsBinary();
 
-    Mat bw;
-    Size size(6000, 6000);//the dst image size,e.g.100x100  4000, 4000 funciona bien
-    resize(grey,grey,size);//resize image
+        std::ofstream ofs;
+        ofs.open ("selected.JPEG", std::ofstream::out);
+        entry.readContent(ofs);
 
-    adaptiveThreshold(~grey, grey, 50, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 79, 31);
-    erode(grey, grey, Mat(), Point(-1, -1), 8, 1, 1);
-    dilate(grey, grey, Mat(), Point(-1, -1), 1, 1, 1);
+        cout << endl << argv[0] << endl << endl;
+        cout << "A demo program of End-to-end Scene Text Detection and Recognition: " << endl;
+        cout << "Shows the use of the Tesseract OCR API with the Extremal Region Filter algorithm described in:" << endl;
+        cout << "Neumann L., Matas J.: Real-Time Scene Text Localization and Recognition, CVPR 2012" << endl << endl;
 
-    Mat mask;
-    inRange(grey, Scalar(50), Scalar(255), grey);
+        Mat image; 
+        image = imread("selected.JPEG");
 
-    Rect horizontalRect = Rect(0,0,6000,900);
-    Rect horizontalRect2 = Rect(0,1470,6000,100);
-    Rect verticalRect = Rect(4650, 0, 320, 6000);
-    rectangle(grey,horizontalRect, Scalar(255, 255, 255), -1, 4, 0);
-    rectangle(grey,horizontalRect2, Scalar(255, 255, 255), -1, 4, 0);
-    rectangle(grey, verticalRect, Scalar(255, 255, 255), -1, 4, 0);
+        cout << "IMG_W=" << image.cols << endl;
+        cout << "IMG_H=" << image.rows << endl;
 
+        /*Text Detection*/
 
-    imshow("test", grey);
-    printf("OCR output:\n%s", read_text(grey));
-    waitKey(0);
+        // Extract channels to be processed individually
+        vector<Mat> channels;
 
+        Mat cropedImage = image(Rect(670, 220, 600, 630));
+
+        Mat grey;
+        cvtColor(cropedImage, grey, cv::COLOR_BGR2GRAY);
+
+        // Notice here we are only using grey channel, see textdetection.cpp for example with more channels
+
+        Mat bw;
+        Size size(6000, 6000);//the dst image size,e.g.100x100  4000, 4000 funciona bien
+        resize(grey,grey,size);//resize image
+
+        adaptiveThreshold(~grey, grey, 50, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 79, 31);
+        erode(grey, grey, Mat(), Point(-1, -1), 8, 1, 1);
+        dilate(grey, grey, Mat(), Point(-1, -1), 1, 1, 1);
+
+        Mat mask;
+        inRange(grey, Scalar(50), Scalar(255), grey);
+
+        Rect horizontalRect = Rect(0,0,6000,900);
+        Rect horizontalRect2 = Rect(0,1470,6000,100);
+        Rect verticalRect = Rect(4650, 0, 320, 6000);
+        rectangle(grey,horizontalRect, Scalar(255, 255, 255), -1, 4, 0);
+        rectangle(grey,horizontalRect2, Scalar(255, 255, 255), -1, 4, 0);
+        rectangle(grey, verticalRect, Scalar(255, 255, 255), -1, 4, 0);
+
+        text += read_text(grey);
+        ofs.close();
+    }
+}
+
+zf.close();
+    cout << "OCR total text: " << text;
     return 0;
 }

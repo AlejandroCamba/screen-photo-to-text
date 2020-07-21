@@ -38,6 +38,7 @@ startProject
 /CMakeFiles
 Makefile
 CMakeCache.txt
+/vcpkg
 
 #photos
 *.png
